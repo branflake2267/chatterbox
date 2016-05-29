@@ -1,2 +1,3 @@
-# chatterbox
-chatterbox
+# Chatterbox
+I'm experimenting with Android applicaiton development.
+
