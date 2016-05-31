@@ -2,8 +2,18 @@ package com.gonevertical.chatterbox.group;
 
 public class Group {
 
+
     private String name;
+
+    /**
+     * User key
+     */
     private String uid;
+
+    /**
+     * This is the default group for the user, created for the user.
+     */
+    private boolean defaultGroup;
 
     public Group() {
     }
@@ -29,4 +39,15 @@ public class Group {
         return uid;
     }
 
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+
+    public boolean isDefaultGroup() {
+        return defaultGroup;
+    }
+
+    public void setDefaultGroup(boolean defaultGroup) {
+        this.defaultGroup = defaultGroup;
+    }
 }

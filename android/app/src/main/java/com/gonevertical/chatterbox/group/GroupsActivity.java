@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -23,7 +22,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
@@ -36,71 +34,15 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
-public class GroupsActivity extends AppCompatActivity implements EditGroupDialog.AddGroupDialogListener, DeleteGroupDialog.DeleteDialogListener {
+public class GroupsActivity extends AppCompatActivity implements EditGroupDialog.EditGroupDialogListener, DeleteGroupDialog.DeleteDialogListener {
 
     public static Intent createIntent(Context context) {
         Intent in = new Intent();
         in.setClass(context, GroupsActivity.class);
         return in;
-    }
-
-    public static class GroupHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
-        public interface GroupClickHandler {
-            void onGroupClick();
-        }
-
-        private FragmentManager supportFragmentManager;
-        private View mView;
-        private Group group;
-        private GroupClickHandler groupClickHandler;
-
-        public GroupHolder(View itemView) {
-            super(itemView);
-
-            itemView.setOnClickListener(this);
-            itemView.setOnLongClickListener(this);
-
-            mView = itemView;
-        }
-
-        public void setGroup(FragmentManager supportFragmentManager, Group group) {
-            this.supportFragmentManager = supportFragmentManager;
-            this.group = group;
-
-            TextView field = (TextView) mView.findViewById(R.id.groupName);
-            field.setText(group.getName());
-        }
-
-        @Override
-        public void onClick(View v) {
-            fireOnClickGroupEvent();
-        }
-
-        @Override
-        public boolean onLongClick(View v) {
-            Toast.makeText(v.getContext(), "Long: The Group is" + group.getName(), Toast.LENGTH_LONG).show();
-
-            EditGroupDialog dialogFragment = EditGroupDialog.newInstance(getGroup().getName(), getAdapterPosition());
-            dialogFragment.show(supportFragmentManager, "Edit Group Dialog Fragment");
-
-            return false;
-        }
-
-        public Group getGroup() {
-            return group;
-        }
-
-        public void setOnClickGroupHandler(GroupClickHandler groupClickHandler) {
-            this.groupClickHandler = groupClickHandler;
-        }
-
-        protected void fireOnClickGroupEvent() {
-            if (groupClickHandler != null) {
-                groupClickHandler.onGroupClick();
-            }
-        }
     }
 
     private static final String TAG = GroupsActivity.class.getSimpleName();
@@ -110,8 +52,7 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
     private ActionBarDrawerToggle mDrawerToggle;
     private ArrayAdapter<String> mDrawerAdapter;
 
-    private DatabaseReference mDatabaseRefGroups;
-    private FirebaseRecyclerAdapter<Group, GroupHolder> mRecyclerViewAdapter;
+    private FirebaseRecyclerAdapter<String, GroupHolder> mRecyclerViewAdapter;
     private SwipeRefreshLayout swipeContainer;
 
     private FirebaseAuth mAuth;
@@ -137,14 +78,57 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
                 showAddGroupDialog();
             }
         });
+
+        doesDefaultGroupExist();
+    }
+
+    private void doesDefaultGroupExist() {
+        DatabaseReference drGroups = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_GROUPS);
+        Query defaultGroupQuery = drGroups.orderByChild("defaultGroup").equalTo(true);
+        defaultGroupQuery.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    linkUserToGroup(dataSnapshot.getChildren().iterator().next().getKey());
+                } else {
+                    createDefaultGroup();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // TODO
+                Toast.makeText(GroupsActivity.this, "Oops Couldn't find default group", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void createDefaultGroup() {
+        createGroup("My Group", true);
+    }
+
+    private void linkUserToGroup(final String groupKey) {
+        final String userKey = mAuth.getCurrentUser().getUid();
+
+        // link to user groups with reference
+        Query drGroupsLink = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(userKey).child(AppConstant.DATABASE_GROUPS).orderByValue().equalTo(groupKey);
+        drGroupsLink.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.hasChildren()) {
+                    FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(userKey).child(AppConstant.DATABASE_GROUPS).push().setValue(groupKey);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // TODO
+            }
+        });
     }
 
     private void initFirebase() {
         mAuth = FirebaseAuth.getInstance();
-
-        mDatabaseRefGroups = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_GROUPS);
-
-        FirebaseAuth mAuth = FirebaseAuth.getInstance();
         mAuth.addAuthStateListener(new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -178,7 +162,9 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
             }
         });
 
-        mDatabaseRefGroups.addValueEventListener(new ValueEventListener() {
+        String userKey = mAuth.getCurrentUser().getUid();
+        DatabaseReference drGroups = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(userKey).child(AppConstant.DATABASE_GROUPS);
+        drGroups.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 (new Handler()).postDelayed(new Runnable() {
@@ -195,15 +181,14 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
             }
         });
 
-        mRecyclerViewAdapter = new FirebaseRecyclerAdapter<Group, GroupHolder>(Group.class, R.layout.group, GroupHolder.class, mDatabaseRefGroups.getRef()) {
+        mRecyclerViewAdapter = new FirebaseRecyclerAdapter<String, GroupHolder>(String.class, R.layout.group, GroupHolder.class, drGroups) {
             @Override
-            public void populateViewHolder(final GroupHolder groupHolder, Group group, final int position) {
-                groupHolder.setGroup(getSupportFragmentManager(), group);
+            public void populateViewHolder(final GroupHolder groupHolder, String groupKey, final int position) {
+                groupHolder.setGroup(getSupportFragmentManager(), groupKey);
                 groupHolder.setOnClickGroupHandler(new GroupHolder.GroupClickHandler() {
                     @Override
                     public void onGroupClick() {
                         DatabaseReference groupRef = mRecyclerViewAdapter.getRef(position);
-
                     }
                 });
             }
@@ -273,14 +258,11 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
         });
     }
 
-    private void showAreYouSureDialog(final GroupHolder groupHolder) {
+    private void showAreYouSureDialog(GroupHolder groupHolder) {
         DeleteGroupDialog deleteGroupDialog = DeleteGroupDialog.newInstance(groupHolder);
         deleteGroupDialog.show(getSupportFragmentManager(), "Delete Group Dialog Fragment");
     }
 
-    /**
-     * guide: http://developer.android.com/guide/topics/ui/dialogs.html
-     */
     private void showAddGroupDialog() {
         EditGroupDialog dialogFragment = EditGroupDialog.newInstance();
         dialogFragment.show(getSupportFragmentManager(), "Add Group Dialog Fragment");
@@ -328,13 +310,13 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
         return super.onOptionsItemSelected(item);
     }
 
+    private void onActionSettings() {
+        Toast.makeText(GroupsActivity.this, "Settings Click", Toast.LENGTH_SHORT).show();
+    }
+
     private void onActionRooms() {
         startActivity(RoomsActivity.createIntent(this));
         finish();
-    }
-
-    private void onActionSettings() {
-        Toast.makeText(GroupsActivity.this, "Settings Click", Toast.LENGTH_SHORT).show();
     }
 
     private void onActionSignout() {
@@ -344,19 +326,58 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
     }
 
     /**
-     * Finishing editing dialog
+     * Create a concrete group, then link it to the user.
+     *
+     * @param name         group name
+     * @param defaultGroup for the first group only (maybe change this to the first item)
+     */
+    private void createGroup(String name, boolean defaultGroup) {
+        Group group = new Group(name);
+        group.setUid(mAuth.getCurrentUser().getUid());
+        group.setDefaultGroup(defaultGroup);
+
+        // add concrete group, then link it to user
+        DatabaseReference dr = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_GROUPS);
+        dr.push().setValue(group, new DatabaseReference.CompletionListener() {
+            @Override
+            public void onComplete(DatabaseError databaseError, DatabaseReference databaseReference) {
+                if (databaseError == null) {
+                    linkUserToGroup(databaseReference.getKey());
+                } else {
+                    // TODO
+                    Log.e(TAG, "Error completing creating group.");
+                }
+            }
+        });
+    }
+
+    /**
+     * Finished adding.
      */
     @Override
     public void onFinishAddDialog(String groupName) {
         //Log.i(TAG, "groupName=" + groupName + " " + addGroup);
-        Group group = new Group(groupName);
-        mDatabaseRefGroups.push().setValue(group);
+        createGroup(groupName, false);
     }
 
+    /**
+     * Finished editing.
+     */
     @Override
-    public void onFinishEditDialog(String groupName, int adapterIndex) {
-        DatabaseReference groupRef = mRecyclerViewAdapter.getRef(adapterIndex);
-        groupRef.child("name").setValue(groupName);
+    public void onFinishEditDialog(final String groupName, int adapterIndex) {
+        DatabaseReference drGroupLink = mRecyclerViewAdapter.getRef(adapterIndex).getRef();
+        drGroupLink.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String groupKey = dataSnapshot.getValue(String.class);
+                FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_GROUPS).child(groupKey).child("name").setValue(groupName);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // TODO
+            }
+        });
     }
 
     @Override
@@ -364,7 +385,13 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
         Log.i(TAG, "delete Ok groupName=" + groupHolder.getGroup().getName());
         Toast.makeText(this, "Deleting group " + groupHolder.getGroup().getName(), Toast.LENGTH_LONG).show();
 
+        // Don't delete the default group
+        if (groupHolder.getGroup().isDefaultGroup()) {
+            return;
+        }
+
         // TODO delete group
+        // TODO don't delete default group
     }
 
     @Override
@@ -380,4 +407,5 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
         super.onDestroy();
         mRecyclerViewAdapter.cleanup();
     }
+
 }

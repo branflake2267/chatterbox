@@ -10,12 +10,12 @@ import android.support.v7.app.AlertDialog;
 public class DeleteGroupDialog extends DialogFragment {
 
     public interface DeleteDialogListener {
-        void onDeleteOkDialog(GroupsActivity.GroupHolder groupHolder);
+        void onDeleteOkDialog(GroupHolder groupHolder);
 
-        void onDeleteCancelDialog(GroupsActivity.GroupHolder groupHolder);
+        void onDeleteCancelDialog(GroupHolder groupHolder);
     }
 
-    public static DeleteGroupDialog newInstance(GroupsActivity.GroupHolder groupHolder) {
+    public static DeleteGroupDialog newInstance(GroupHolder groupHolder) {
         DeleteGroupDialog fragment = new DeleteGroupDialog();
         fragment.setGroupHolder(groupHolder);
 
@@ -23,7 +23,7 @@ public class DeleteGroupDialog extends DialogFragment {
     }
 
     private DeleteDialogListener mListener;
-    private GroupsActivity.GroupHolder mGroupHolder;
+    private GroupHolder mGroupHolder;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -45,7 +45,7 @@ public class DeleteGroupDialog extends DialogFragment {
         return builder.create();
     }
 
-    public void setGroupHolder(GroupsActivity.GroupHolder group) {
+    public void setGroupHolder(GroupHolder group) {
         mGroupHolder = group;
     }
 

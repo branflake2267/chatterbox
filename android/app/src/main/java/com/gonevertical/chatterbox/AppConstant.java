@@ -13,4 +13,6 @@ public class AppConstant {
     public static final String DATABASE_CHATS = "chats";
 
     public static final String DATABASE_MESSSAGES = "messages";
+
+    public static final String DATABASE_USERS = "users";
 }

@@ -17,7 +17,7 @@ import com.gonevertical.chatterbox.R;
  */
 public class EditGroupDialog extends DialogFragment {
 
-    public interface AddGroupDialogListener {
+    public interface EditGroupDialogListener {
         void onFinishAddDialog(String groupName);
 
         void onFinishEditDialog(String groupName, int adapterIndex);
@@ -50,7 +50,7 @@ public class EditGroupDialog extends DialogFragment {
     public static String PARAM_ADD_ROOM = "addGroup";
     public static String PARAM_ADAPTER_INDEX = "mAdapterIndex";
 
-    private AddGroupDialogListener mListener;
+    private EditGroupDialogListener mListener;
 
     private boolean mAddGroup = false;
     private int mAdapterIndex = -1;
@@ -109,10 +109,10 @@ public class EditGroupDialog extends DialogFragment {
         // Verify that the host activity implements the callback interface
         try {
             // Instantiate the NoticeDialogListener so we can send events to the host
-            mListener = (AddGroupDialogListener) activity;
+            mListener = (EditGroupDialogListener) activity;
         } catch (ClassCastException e) {
             // The activity doesn't implement the interface, throw exception
-            throw new ClassCastException(activity.toString() + " must implement " + AddGroupDialogListener.class.getSimpleName());
+            throw new ClassCastException(activity.toString() + " must implement " + EditGroupDialogListener.class.getSimpleName());
         }
     }
 }

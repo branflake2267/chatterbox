@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'idea'
 
 android {
     compileSdkVersion 23
@@ -36,6 +37,13 @@ dependencies {
     compile 'com.firebaseui:firebase-ui-database:0.4.0'
     compile 'com.firebaseui:firebase-ui-auth:0.4.0'
     compile 'com.google.android.gms:play-services:9.0.0'
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
 }
 
 
