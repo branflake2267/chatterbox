@@ -5,6 +5,11 @@ public class Room {
     private String name;
     private String uid;
 
+    /**
+     * This is the default group for the user, created for the user.
+     */
+    private boolean defaultRoom;
+
     public Room() {
     }
 
@@ -29,4 +34,15 @@ public class Room {
         return uid;
     }
 
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+
+    public boolean isDefaultRoom() {
+        return defaultRoom;
+    }
+
+    public void setDefaultRoom(boolean defaultRoom) {
+        this.defaultRoom = defaultRoom;
+    }
 }

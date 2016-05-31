@@ -4,7 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
-import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -12,12 +12,10 @@ import com.firebase.ui.auth.AuthUI;
 import com.gonevertical.chatterbox.group.GroupsActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
 
-public class SignInActivity extends AppCompatActivity {
+public class SignInActivity extends BaseActivity {
 
     public static Intent createIntent(Context context) {
         Intent in = new Intent();
@@ -28,8 +26,6 @@ public class SignInActivity extends AppCompatActivity {
     private static final String TAG = SignInActivity.class.getSimpleName();
     private static final int RC_SIGN_IN = 100;
 
-    private DatabaseReference mDatabase;
-    private FirebaseAuth mAuth;
     private View mRootView;
 
     @Override
@@ -37,12 +33,14 @@ public class SignInActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_in);
 
+        // If logged in, send them to the next activity
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            onAuthSuccess();
+            return;
+        }
+
         // Views
         mRootView = findViewById(R.id.sign_in);
-
-        // Firebase
-        mDatabase = FirebaseDatabase.getInstance().getReference();
-        mAuth = FirebaseAuth.getInstance();
 
         startActivityForResult(
                 AuthUI.getInstance().createSignInIntentBuilder()
@@ -67,7 +65,7 @@ public class SignInActivity extends AppCompatActivity {
 
     private void handleSignInResponse(int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-           onAuthSuccess();
+            onAuthSuccess();
             return;
         }
 
@@ -77,16 +75,6 @@ public class SignInActivity extends AppCompatActivity {
         }
 
         showSnackbar(R.string.unknown_sign_in_response);
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-
-        // If logged in, send them to the next activity
-        if (mAuth.getCurrentUser() != null) {
-            onAuthSuccess();
-        }
     }
 
     private String[] getSelectedProviders() {
@@ -100,10 +88,10 @@ public class SignInActivity extends AppCompatActivity {
     }
 
     private void onAuthSuccess() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         Toast.makeText(SignInActivity.this, "Sign In: Success " + currentUser.getDisplayName(), Toast.LENGTH_LONG).show();
 
-        // TODO create group
+        Log.i(TAG, "onAuthSuccess " + currentUser.getUid());
 
         startActivity(GroupsActivity.createIntent(this));
         finish();
@@ -111,6 +99,8 @@ public class SignInActivity extends AppCompatActivity {
 
     private void showSnackbar(int errorMessageRes) {
         Snackbar.make(mRootView, errorMessageRes, Snackbar.LENGTH_LONG).show();
+
+        Log.i(TAG, "showSnackbar error " + errorMessageRes);
     }
 
 }

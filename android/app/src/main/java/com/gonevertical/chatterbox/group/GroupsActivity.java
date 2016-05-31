@@ -10,7 +10,6 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -26,6 +25,7 @@ import android.widget.Toast;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.gonevertical.chatterbox.AppConstant;
+import com.gonevertical.chatterbox.BaseActivity;
 import com.gonevertical.chatterbox.MainActivity;
 import com.gonevertical.chatterbox.R;
 import com.gonevertical.chatterbox.room.RoomsActivity;
@@ -37,7 +37,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
-public class GroupsActivity extends AppCompatActivity implements EditGroupDialog.EditGroupDialogListener, DeleteGroupDialog.DeleteDialogListener {
+public class GroupsActivity extends BaseActivity implements EditGroupDialog.EditGroupDialogListener, DeleteGroupDialog.DeleteDialogListener {
 
     public static Intent createIntent(Context context) {
         Intent in = new Intent();
@@ -54,8 +54,6 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
 
     private FirebaseRecyclerAdapter<String, GroupHolder> mRecyclerViewAdapter;
     private SwipeRefreshLayout swipeContainer;
-
-    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,15 +106,13 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
     }
 
     private void linkUserToGroup(final String groupKey) {
-        final String userKey = mAuth.getCurrentUser().getUid();
-
         // link to user groups with reference
-        Query drGroupsLink = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(userKey).child(AppConstant.DATABASE_GROUPS).orderByValue().equalTo(groupKey);
+        Query drGroupsLink = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_GROUPS).orderByValue().equalTo(groupKey);
         drGroupsLink.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (!dataSnapshot.hasChildren()) {
-                    FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(userKey).child(AppConstant.DATABASE_GROUPS).push().setValue(groupKey);
+                    FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_GROUPS).push().setValue(groupKey);
                 }
             }
 
@@ -128,8 +124,7 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
     }
 
     private void initFirebase() {
-        mAuth = FirebaseAuth.getInstance();
-        mAuth.addAuthStateListener(new FirebaseAuth.AuthStateListener() {
+        FirebaseAuth.getInstance().addAuthStateListener(new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 updateUI(firebaseAuth);
@@ -138,7 +133,6 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
     }
 
     private void updateUI(FirebaseAuth firebaseAuth) {
-
     }
 
     private void createGroupsView() {
@@ -162,8 +156,7 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
             }
         });
 
-        String userKey = mAuth.getCurrentUser().getUid();
-        DatabaseReference drGroups = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(userKey).child(AppConstant.DATABASE_GROUPS);
+        DatabaseReference drGroups = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_GROUPS);
         drGroups.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -188,7 +181,17 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
                 groupHolder.setOnClickGroupHandler(new GroupHolder.GroupClickHandler() {
                     @Override
                     public void onGroupClick() {
-                        DatabaseReference groupRef = mRecyclerViewAdapter.getRef(position);
+                        mRecyclerViewAdapter.getRef(position).getRef().addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                navigateToRoom(dataSnapshot.getValue(String.class));
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+                                // TODO
+                            }
+                        });
                     }
                 });
             }
@@ -216,6 +219,11 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
         };
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
         itemTouchHelper.attachToRecyclerView(recyclerView);
+    }
+
+    private void navigateToRoom(String groupKey) {
+        Log.i(TAG, "navigateToRoom groupKey=" + groupKey);
+        startActivity(RoomsActivity.createIntent(this, groupKey));
     }
 
     private void createDrawer() {
@@ -297,9 +305,6 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
             case R.id.action_signout:
                 onActionSignout();
                 break;
-            case R.id.action_rooms:
-                onActionRooms();
-                break;
         }
 
         // Activate the navigation drawer toggle
@@ -314,13 +319,8 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
         Toast.makeText(GroupsActivity.this, "Settings Click", Toast.LENGTH_SHORT).show();
     }
 
-    private void onActionRooms() {
-        startActivity(RoomsActivity.createIntent(this));
-        finish();
-    }
-
     private void onActionSignout() {
-        mAuth.signOut();
+        FirebaseAuth.getInstance().signOut();
         startActivity(MainActivity.createIntent(GroupsActivity.this));
         finish();
     }
@@ -333,7 +333,7 @@ public class GroupsActivity extends AppCompatActivity implements EditGroupDialog
      */
     private void createGroup(String name, boolean defaultGroup) {
         Group group = new Group(name);
-        group.setUid(mAuth.getCurrentUser().getUid());
+        group.setUid(FirebaseAuth.getInstance().getCurrentUser().getUid());
         group.setDefaultGroup(defaultGroup);
 
         // add concrete group, then link it to user

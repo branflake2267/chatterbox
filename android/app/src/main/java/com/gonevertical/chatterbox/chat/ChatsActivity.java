@@ -1,12 +1,12 @@
 package com.gonevertical.chatterbox.chat;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.NavUtils;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -18,15 +18,22 @@ import android.widget.TextView;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.gonevertical.chatterbox.AppConstant;
+import com.gonevertical.chatterbox.BaseActivity;
 import com.gonevertical.chatterbox.R;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-public class ChatsActivity extends AppCompatActivity {
+public class ChatsActivity extends BaseActivity {
+
+    public static Intent createIntent(Context context, String roomKey) {
+        Intent in = new Intent();
+        in.setClass(context, ChatsActivity.class);
+        in.putExtra(AppConstant.ROOM_KEY, roomKey);
+        return in;
+    }
 
     public static class ChatsHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
         private FragmentManager supportFragmentManager;
@@ -169,18 +176,6 @@ public class ChatsActivity extends AppCompatActivity {
     private void initFirebase(String roomKey) {
         DatabaseReference mDatabaseRefMessages = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_MESSSAGES);
         mQueryRoomChats = mDatabaseRefMessages.child(roomKey).child(AppConstant.DATABASE_CHATS);
-
-        FirebaseAuth mAuth = FirebaseAuth.getInstance();
-        mAuth.addAuthStateListener(new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                updateUI(firebaseAuth);
-            }
-        });
-    }
-
-    private void updateUI(FirebaseAuth firebaseAuth) {
-
     }
 
     @Override

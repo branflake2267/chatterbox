@@ -2,7 +2,6 @@ package com.gonevertical.chatterbox.group;
 
 import android.support.v4.app.FragmentManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -46,7 +45,7 @@ public class GroupHolder extends RecyclerView.ViewHolder implements View.OnClick
             drGroup.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    Log.i(TAG, "setGroup onDataChange dataSnapshot=" + dataSnapshot);
+                    //Log.i(TAG, "setGroup onDataChange dataSnapshot=" + dataSnapshot);
 
                     if (dataSnapshot.exists()) {
                         Group group = dataSnapshot.getValue(Group.class);

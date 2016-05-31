@@ -3,9 +3,8 @@ package com.gonevertical.chatterbox;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
 
     public static Intent createIntent(Context context) {
         Intent in = new Intent();
@@ -19,5 +18,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         startActivity(new Intent(this, SignInActivity.class));
+        finish();
     }
 }

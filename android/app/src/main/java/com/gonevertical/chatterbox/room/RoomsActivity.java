@@ -5,13 +5,10 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -23,11 +20,11 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.gonevertical.chatterbox.AppConstant;
+import com.gonevertical.chatterbox.BaseActivity;
 import com.gonevertical.chatterbox.MainActivity;
 import com.gonevertical.chatterbox.R;
 import com.gonevertical.chatterbox.chat.ChatsActivity;
@@ -37,71 +34,16 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
-public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.AddRoomDialogListener, DeleteRoomDialog.DeleteDialogListener {
+public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRoomDialogListener, DeleteRoomDialog.DeleteDialogListener {
 
-    public static Intent createIntent(Context context) {
+    public static Intent createIntent(Context context, String groupKey) {
         Intent in = new Intent();
         in.setClass(context, RoomsActivity.class);
+        in.putExtra(AppConstant.GROUP_KEY, groupKey);
         return in;
-    }
-
-    public static class RoomHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
-        public interface RoomClickHandler {
-            void onRoomClick();
-        }
-
-        private FragmentManager supportFragmentManager;
-        private View mView;
-        private Room room;
-        private RoomClickHandler roomClickHandler;
-
-        public RoomHolder(View itemView) {
-            super(itemView);
-
-            itemView.setOnClickListener(this);
-            itemView.setOnLongClickListener(this);
-
-            mView = itemView;
-        }
-
-        public void setRoom(FragmentManager supportFragmentManager, Room room) {
-            this.supportFragmentManager = supportFragmentManager;
-            this.room = room;
-
-            TextView field = (TextView) mView.findViewById(R.id.roomName);
-            field.setText(room.getName());
-        }
-
-        @Override
-        public void onClick(View v) {
-            fireOnClickRoomEvent();
-        }
-
-        @Override
-        public boolean onLongClick(View v) {
-            Toast.makeText(v.getContext(), "Long: The Room is" + room.getName(), Toast.LENGTH_LONG).show();
-
-            EditRoomDialog dialogFragment = EditRoomDialog.newInstance(getRoom().getName(), getAdapterPosition());
-            dialogFragment.show(supportFragmentManager, "Edit Room Dialog Fragment");
-
-            return false;
-        }
-
-        public Room getRoom() {
-            return room;
-        }
-
-        public void setOnClickRoomHandler(RoomClickHandler roomClickHandler) {
-            this.roomClickHandler = roomClickHandler;
-        }
-
-        protected void fireOnClickRoomEvent() {
-            if (roomClickHandler != null) {
-                roomClickHandler.onRoomClick();
-            }
-        }
     }
 
     private static final String TAG = RoomsActivity.class.getSimpleName();
@@ -111,11 +53,8 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
     private ActionBarDrawerToggle mDrawerToggle;
     private ArrayAdapter<String> mDrawerAdapter;
 
-    private DatabaseReference mDatabaseRefRooms;
-    private FirebaseRecyclerAdapter<Room, RoomHolder> mRecyclerViewAdapter;
+    private FirebaseRecyclerAdapter<String, RoomHolder> mRecyclerViewAdapter;
     private SwipeRefreshLayout swipeContainer;
-
-    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,8 +63,6 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        initFirebase();
 
         createDrawer();
 
@@ -138,24 +75,59 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
                 showAddRoomDialog();
             }
         });
+
+        doesDefaultRoomExist();
     }
 
-    private void initFirebase() {
-        mAuth = FirebaseAuth.getInstance();
+    private String getGroupKey() {
+        // This room resides under this groupKey
+        return getIntent().getStringExtra(AppConstant.GROUP_KEY);
+    }
 
-        mDatabaseRefRooms = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_ROOMS);
-
-        FirebaseAuth mAuth = FirebaseAuth.getInstance();
-        mAuth.addAuthStateListener(new FirebaseAuth.AuthStateListener() {
+    private void doesDefaultRoomExist() {
+        DatabaseReference drRooms = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_ROOMS);
+        Query defaultRoomQuery = drRooms.orderByChild("defaultRoom").equalTo(true);
+        defaultRoomQuery.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                updateUI(firebaseAuth);
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    linkUserToRoom(dataSnapshot.getChildren().iterator().next().getKey());
+                } else {
+                    createDefaultRoom();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // TODO
+                Toast.makeText(RoomsActivity.this, "Oops Couldn't find default room", Toast.LENGTH_LONG).show();
             }
         });
     }
 
-    private void updateUI(FirebaseAuth firebaseAuth) {
+    private void createDefaultRoom() {
+        createRoom("My Room", true);
+    }
 
+    /**
+     * /users/userKey/groupKey/rooms/roomkey
+     */
+    private void linkUserToRoom(final String roomKey) {
+        // link to user rooms with reference
+        Query drRoomsLink = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_ROOMS).child(getGroupKey()).orderByValue().equalTo(roomKey);
+        drRoomsLink.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.hasChildren()) {
+                    FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_ROOMS).child(getGroupKey()).push().setValue(roomKey);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // TODO
+            }
+        });
     }
 
     private void createRoomsView() {
@@ -179,7 +151,8 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
             }
         });
 
-        mDatabaseRefRooms.addValueEventListener(new ValueEventListener() {
+        DatabaseReference drRooms = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_ROOMS).child(getGroupKey());
+        drRooms.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 (new Handler()).postDelayed(new Runnable() {
@@ -196,15 +169,24 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
             }
         });
 
-        mRecyclerViewAdapter = new FirebaseRecyclerAdapter<Room, RoomHolder>(Room.class, R.layout.room, RoomHolder.class, mDatabaseRefRooms.getRef()) {
+        mRecyclerViewAdapter = new FirebaseRecyclerAdapter<String, RoomHolder>(String.class, R.layout.room, RoomHolder.class, drRooms) {
             @Override
-            public void populateViewHolder(final RoomHolder roomHolder, Room room, final int position) {
-                roomHolder.setRoom(getSupportFragmentManager(), room);
+            public void populateViewHolder(final RoomHolder roomHolder, String roomKey, final int position) {
+                roomHolder.setRoom(getSupportFragmentManager(), roomKey);
                 roomHolder.setOnClickRoomHandler(new RoomHolder.RoomClickHandler() {
                     @Override
                     public void onRoomClick() {
-                        DatabaseReference roomRef = mRecyclerViewAdapter.getRef(position);
-                        navigateToChatActivity(roomRef);
+                        mRecyclerViewAdapter.getRef(position).getRef().addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                navigateToChat(dataSnapshot.getKey());
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+                                // TODO
+                            }
+                        });
                     }
                 });
             }
@@ -232,6 +214,10 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
         };
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
         itemTouchHelper.attachToRecyclerView(recyclerView);
+    }
+
+    private void navigateToChat(String roomKey) {
+        startActivity(ChatsActivity.createIntent(this, roomKey));
     }
 
     private void createDrawer() {
@@ -274,20 +260,11 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
         });
     }
 
-    private void navigateToChatActivity(DatabaseReference roomRef) {
-        Intent intent = new Intent(getApplicationContext(), ChatsActivity.class);
-        intent.putExtra(AppConstant.ROOM_KEY, roomRef.getKey());
-        startActivity(intent);
-    }
-
-    private void showAreYouSureDialog(final RoomHolder roomHolder) {
+    private void showAreYouSureDialog(RoomHolder roomHolder) {
         DeleteRoomDialog deleteRoomDialog = DeleteRoomDialog.newInstance(roomHolder);
         deleteRoomDialog.show(getSupportFragmentManager(), "Delete Room Dialog Fragment");
     }
 
-    /**
-     * guide: http://developer.android.com/guide/topics/ui/dialogs.html
-     */
     private void showAddRoomDialog() {
         EditRoomDialog dialogFragment = EditRoomDialog.newInstance();
         dialogFragment.show(getSupportFragmentManager(), "Add Room Dialog Fragment");
@@ -317,13 +294,13 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_settings:
-                onSettings();
+                onActionSettings();
                 break;
             case R.id.action_signout:
-                onSignOut();
+                onActionSignout();
                 break;
             case R.id.action_groups:
-                onGroups();
+                onActionGroups();
                 break;
         }
 
@@ -335,35 +312,71 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
         return super.onOptionsItemSelected(item);
     }
 
-    private void onGroups() {
+    private void onActionSettings() {
+        Toast.makeText(RoomsActivity.this, "Settings Click", Toast.LENGTH_SHORT).show();
+    }
+
+    private void onActionGroups() {
         startActivity(GroupsActivity.createIntent(this));
-        finish();
     }
 
-    private void onSettings() {
-        // TODO
-    }
-
-    private void onSignOut() {
-        mAuth.signOut();
+    private void onActionSignout() {
+        FirebaseAuth.getInstance().signOut();
         startActivity(MainActivity.createIntent(RoomsActivity.this));
-        finish();
     }
 
     /**
-     * Finishing editing dialog
+     * Create a concrete room, then link it to the user.
+     *
+     * @param name room name
+     */
+    private void createRoom(String name, boolean defaultRoom) {
+        Room room = new Room(name);
+        room.setUid(FirebaseAuth.getInstance().getCurrentUser().getUid());
+        room.setDefaultRoom(defaultRoom);
+
+        // add concrete room, then link it to user
+        DatabaseReference dr = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_ROOMS);
+        dr.push().setValue(room, new DatabaseReference.CompletionListener() {
+            @Override
+            public void onComplete(DatabaseError databaseError, DatabaseReference databaseReference) {
+                if (databaseError == null) {
+                    linkUserToRoom(databaseReference.getKey());
+                } else {
+                    // TODO
+                    Log.e(TAG, "Error completing creating room.");
+                }
+            }
+        });
+    }
+
+    /**
+     * Finished adding.
      */
     @Override
     public void onFinishAddDialog(String roomName) {
         //Log.i(TAG, "roomName=" + roomName + " " + addRoom);
-        Room room = new Room(roomName);
-        mDatabaseRefRooms.push().setValue(room);
+        createRoom(roomName, false);
     }
 
+    /**
+     * Finished editing.
+     */
     @Override
-    public void onFinishEditDialog(String roomName, int adapterIndex) {
-        DatabaseReference roomRef = mRecyclerViewAdapter.getRef(adapterIndex);
-        roomRef.child("name").setValue(roomName);
+    public void onFinishEditDialog(final String roomName, int adapterIndex) {
+        DatabaseReference drRoomLink = mRecyclerViewAdapter.getRef(adapterIndex).getRef();
+        drRoomLink.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String roomKey = dataSnapshot.getValue(String.class);
+                FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_ROOMS).child(roomKey).child("name").setValue(roomName);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // TODO
+            }
+        });
     }
 
     @Override
@@ -387,4 +400,5 @@ public class RoomsActivity extends AppCompatActivity implements EditRoomDialog.A
         super.onDestroy();
         mRecyclerViewAdapter.cleanup();
     }
+
 }

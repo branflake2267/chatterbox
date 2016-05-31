@@ -17,7 +17,7 @@ import com.gonevertical.chatterbox.R;
  */
 public class EditRoomDialog extends DialogFragment {
 
-    public interface AddRoomDialogListener {
+    public interface EditRoomDialogListener {
         void onFinishAddDialog(String roomName);
 
         void onFinishEditDialog(String roomName, int adapterIndex);
@@ -50,7 +50,7 @@ public class EditRoomDialog extends DialogFragment {
     public static String PARAM_ADD_ROOM = "addRoom";
     public static String PARAM_ADAPTER_INDEX = "mAdapterIndex";
 
-    private AddRoomDialogListener mListener;
+    private EditRoomDialogListener mListener;
 
     private boolean mAddRoom = false;
     private int mAdapterIndex = -1;
@@ -109,10 +109,10 @@ public class EditRoomDialog extends DialogFragment {
         // Verify that the host activity implements the callback interface
         try {
             // Instantiate the NoticeDialogListener so we can send events to the host
-            mListener = (AddRoomDialogListener) activity;
+            mListener = (EditRoomDialogListener) activity;
         } catch (ClassCastException e) {
             // The activity doesn't implement the interface, throw exception
-            throw new ClassCastException(activity.toString() + " must implement " + AddRoomDialogListener.class.getSimpleName());
+            throw new ClassCastException(activity.toString() + " must implement " + EditRoomDialogListener.class.getSimpleName());
         }
     }
 }

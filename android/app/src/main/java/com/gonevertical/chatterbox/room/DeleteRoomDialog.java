@@ -10,12 +10,12 @@ import android.support.v7.app.AlertDialog;
 public class DeleteRoomDialog extends DialogFragment {
 
     public interface DeleteDialogListener {
-        void onDeleteOkDialog(RoomsActivity.RoomHolder roomHolder);
+        void onDeleteOkDialog(RoomHolder roomHolder);
 
-        void onDeleteCancelDialog(RoomsActivity.RoomHolder roomHolder);
+        void onDeleteCancelDialog(RoomHolder roomHolder);
     }
 
-    public static DeleteRoomDialog newInstance(RoomsActivity.RoomHolder roomHolder) {
+    public static DeleteRoomDialog newInstance(RoomHolder roomHolder) {
         DeleteRoomDialog fragment = new DeleteRoomDialog();
         fragment.setRoomHolder(roomHolder);
 
@@ -23,7 +23,7 @@ public class DeleteRoomDialog extends DialogFragment {
     }
 
     private DeleteDialogListener mListener;
-    private RoomsActivity.RoomHolder mRoomHolder;
+    private RoomHolder mRoomHolder;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -45,7 +45,7 @@ public class DeleteRoomDialog extends DialogFragment {
         return builder.create();
     }
 
-    public void setRoomHolder(RoomsActivity.RoomHolder room) {
+    public void setRoomHolder(RoomHolder room) {
         mRoomHolder = room;
     }
 
@@ -56,10 +56,10 @@ public class DeleteRoomDialog extends DialogFragment {
         // Verify that the host activity implements the callback interface
         try {
             // Instantiate the NoticeDialogListener so we can send events to the host
-            mListener = ( DeleteDialogListener) activity;
+            mListener = (DeleteDialogListener) activity;
         } catch (ClassCastException e) {
             // The activity doesn't implement the interface, throw exception
-            throw new ClassCastException(activity.toString() + " must implement " +  DeleteDialogListener.class.getSimpleName());
+            throw new ClassCastException(activity.toString() + " must implement " + DeleteDialogListener.class.getSimpleName());
         }
     }
 
