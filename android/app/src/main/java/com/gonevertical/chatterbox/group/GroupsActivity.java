@@ -322,7 +322,6 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
     private void onActionSignout() {
         FirebaseAuth.getInstance().signOut();
         startActivity(MainActivity.createIntent(GroupsActivity.this));
-        finish();
     }
 
     /**

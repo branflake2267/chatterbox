@@ -151,6 +151,8 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
             }
         });
 
+        Log.i(TAG, "createRoomsView getUserKey()=" + getUserKey() + " getGroupKey()=" + getGroupKey());
+
         DatabaseReference drRooms = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_ROOMS).child(getGroupKey());
         drRooms.addValueEventListener(new ValueEventListener() {
             @Override
@@ -217,7 +219,7 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
     }
 
     private void navigateToChat(String roomKey) {
-        startActivity(ChatsActivity.createIntent(this, roomKey));
+        startActivity(ChatsActivity.createIntent(this, getGroupKey(), roomKey));
     }
 
     private void createDrawer() {

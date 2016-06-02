@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.NavUtils;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -28,9 +27,10 @@ import com.google.firebase.database.ValueEventListener;
 
 public class ChatsActivity extends BaseActivity {
 
-    public static Intent createIntent(Context context, String roomKey) {
+    public static Intent createIntent(Context context, String groupKey, String roomKey) {
         Intent in = new Intent();
         in.setClass(context, ChatsActivity.class);
+        in.putExtra(AppConstant.GROUP_KEY, groupKey);
         in.putExtra(AppConstant.ROOM_KEY, roomKey);
         return in;
     }
@@ -189,10 +189,14 @@ public class ChatsActivity extends BaseActivity {
         switch (item.getItemId()) {
             // Respond to the action bar's Up/Home button
             case android.R.id.home:
-                NavUtils.navigateUpFromSameTask(this);
+                finish();
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private String getGroupKey() {
+        return getIntent().getStringExtra(AppConstant.GROUP_KEY);
     }
 
 }
