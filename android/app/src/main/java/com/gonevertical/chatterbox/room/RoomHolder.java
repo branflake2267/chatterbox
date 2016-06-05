@@ -42,7 +42,7 @@ public class RoomHolder extends RecyclerView.ViewHolder implements View.OnClickL
         this.supportFragmentManager = supportFragmentManager;
 
         if (drRoom == null) {
-            drRoom = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_ROOMS).child(roomKey);
+            drRoom = FirebaseDatabase.getInstance().getReference(AppConstant.DB_ROOMS).child(roomKey);
             drRoom.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {

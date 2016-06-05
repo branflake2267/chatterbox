@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -52,7 +51,7 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
     private ActionBarDrawerToggle mDrawerToggle;
     private ArrayAdapter<String> mDrawerAdapter;
 
-    private FirebaseRecyclerAdapter<String, GroupHolder> mRecyclerViewAdapter;
+    private FirebaseRecyclerAdapter<Boolean, GroupHolder> mRecyclerViewAdapter;
     private SwipeRefreshLayout swipeContainer;
 
     @Override
@@ -62,8 +61,6 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        initFirebase();
 
         createDrawer();
 
@@ -81,20 +78,19 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
     }
 
     private void doesDefaultGroupExist() {
-        DatabaseReference drGroups = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_GROUPS);
-        Query defaultGroupQuery = drGroups.orderByChild("defaultGroup").equalTo(true);
+        // root/users/userkey/defaults/group/groupKey
+        Query defaultGroupQuery = FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_DEFAULTS).child(AppConstant.DB_GROUP);
         defaultGroupQuery.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    linkUserToGroup(dataSnapshot.getChildren().iterator().next().getKey());
-                } else {
+                if(!dataSnapshot.exists()) {
                     createDefaultGroup();
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, "::doesDefaultGroupExist? " + databaseError.getMessage());
                 // TODO
                 Toast.makeText(GroupsActivity.this, "Oops Couldn't find default group", Toast.LENGTH_LONG).show();
             }
@@ -105,34 +101,20 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
         createGroup("My Group", true);
     }
 
-    private void linkUserToGroup(final String groupKey) {
-        // link to user groups with reference
-        Query drGroupsLink = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_GROUPS).orderByValue().equalTo(groupKey);
-        drGroupsLink.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (!dataSnapshot.hasChildren()) {
-                    FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_GROUPS).push().setValue(groupKey);
-                }
-            }
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                // TODO
-            }
-        });
-    }
+    /**
+     * Link to user groups with reference
+     *
+     * @param groupKey
+     */
+    private void linkUserToGroup(final String groupKey, boolean defaultGroup) {
+        // root/users/userkey/groups/groupkey/true
+        FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_GROUPS).child(groupKey).setValue(true);
 
-    private void initFirebase() {
-        FirebaseAuth.getInstance().addAuthStateListener(new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                updateUI(firebaseAuth);
-            }
-        });
-    }
-
-    private void updateUI(FirebaseAuth firebaseAuth) {
+        if (defaultGroup) {
+            // root/users/userkey/defaults/group/groupKey
+            FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_DEFAULTS).child(AppConstant.DB_GROUP).setValue(groupKey);
+        }
     }
 
     private void createGroupsView() {
@@ -156,7 +138,8 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
             }
         });
 
-        DatabaseReference drGroups = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_USERS).child(getUserKey()).child(AppConstant.DATABASE_GROUPS);
+        // root/users/userKey/groups
+        DatabaseReference drGroups = FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_GROUPS);
         drGroups.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -174,24 +157,16 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
             }
         });
 
-        mRecyclerViewAdapter = new FirebaseRecyclerAdapter<String, GroupHolder>(String.class, R.layout.group, GroupHolder.class, drGroups) {
+        mRecyclerViewAdapter = new FirebaseRecyclerAdapter<Boolean, GroupHolder>(Boolean.class, R.layout.group, GroupHolder.class, drGroups) {
             @Override
-            public void populateViewHolder(final GroupHolder groupHolder, String groupKey, final int position) {
+            public void populateViewHolder(final GroupHolder groupHolder, Boolean b, final int position) {
+                final String groupKey = mRecyclerViewAdapter.getRef(position).getRef().getKey();
+
                 groupHolder.setGroup(getSupportFragmentManager(), groupKey);
                 groupHolder.setOnClickGroupHandler(new GroupHolder.GroupClickHandler() {
                     @Override
                     public void onGroupClick() {
-                        mRecyclerViewAdapter.getRef(position).getRef().addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(DataSnapshot dataSnapshot) {
-                                navigateToRoom(dataSnapshot.getValue(String.class));
-                            }
-
-                            @Override
-                            public void onCancelled(DatabaseError databaseError) {
-                                // TODO
-                            }
-                        });
+                        navigateToRoom(groupKey);
                     }
                 });
             }
@@ -330,18 +305,18 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
      * @param name         group name
      * @param defaultGroup for the first group only (maybe change this to the first item)
      */
-    private void createGroup(String name, boolean defaultGroup) {
+    private void createGroup(String name, final boolean defaultGroup) {
         Group group = new Group(name);
         group.setUid(FirebaseAuth.getInstance().getCurrentUser().getUid());
-        group.setDefaultGroup(defaultGroup);
 
         // add concrete group, then link it to user
-        DatabaseReference dr = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_GROUPS);
+        DatabaseReference dr = FirebaseDatabase.getInstance().getReference(AppConstant.DB_GROUPS);
         dr.push().setValue(group, new DatabaseReference.CompletionListener() {
             @Override
             public void onComplete(DatabaseError databaseError, DatabaseReference databaseReference) {
+                String groupKey = databaseReference.getKey();
                 if (databaseError == null) {
-                    linkUserToGroup(databaseReference.getKey());
+                    linkUserToGroup(groupKey, defaultGroup);
                 } else {
                     // TODO
                     Log.e(TAG, "Error completing creating group.");
@@ -368,8 +343,9 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
         drGroupLink.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                String groupKey = dataSnapshot.getValue(String.class);
-                FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_GROUPS).child(groupKey).child("name").setValue(groupName);
+                String groupKey = dataSnapshot.getKey();
+                // root/groups/groupKey/name
+                FirebaseDatabase.getInstance().getReference(AppConstant.DB_GROUPS).child(groupKey).child("name").setValue(groupName);
             }
 
             @Override
@@ -384,10 +360,6 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
         Log.i(TAG, "delete Ok groupName=" + groupHolder.getGroup().getName());
         Toast.makeText(this, "Deleting group " + groupHolder.getGroup().getName(), Toast.LENGTH_LONG).show();
 
-        // Don't delete the default group
-        if (groupHolder.getGroup().isDefaultGroup()) {
-            return;
-        }
 
         // TODO delete group
         // TODO don't delete default group

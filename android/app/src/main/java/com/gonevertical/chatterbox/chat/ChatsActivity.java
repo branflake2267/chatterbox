@@ -174,8 +174,8 @@ public class ChatsActivity extends BaseActivity {
     }
 
     private void initFirebase(String roomKey) {
-        DatabaseReference mDatabaseRefMessages = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_MESSSAGES);
-        mQueryRoomChats = mDatabaseRefMessages.child(roomKey).child(AppConstant.DATABASE_CHATS);
+        DatabaseReference mDatabaseRefMessages = FirebaseDatabase.getInstance().getReference(AppConstant.DB_MESSSAGES);
+        mQueryRoomChats = mDatabaseRefMessages.child(roomKey).child(AppConstant.DB_CHATS);
     }
 
     @Override

@@ -15,14 +15,13 @@ import com.google.firebase.database.ValueEventListener;
 
 public class GroupHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
 
-    private DatabaseReference drGroup;
-
     public interface GroupClickHandler {
         void onGroupClick();
     }
 
     private final static String TAG = GroupHolder.class.getSimpleName();
 
+    private DatabaseReference drGroup;
     private FragmentManager supportFragmentManager;
     private View mView;
     private Group group;
@@ -41,7 +40,7 @@ public class GroupHolder extends RecyclerView.ViewHolder implements View.OnClick
         this.supportFragmentManager = supportFragmentManager;
 
         if (drGroup == null) {
-            drGroup = FirebaseDatabase.getInstance().getReference(AppConstant.DATABASE_GROUPS).child(groupKey);
+            drGroup = FirebaseDatabase.getInstance().getReference(AppConstant.DB_GROUPS).child(groupKey);
             drGroup.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
