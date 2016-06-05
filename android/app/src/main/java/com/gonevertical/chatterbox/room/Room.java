@@ -38,11 +38,4 @@ public class Room {
         this.uid = uid;
     }
 
-    public boolean isDefaultRoom() {
-        return defaultRoom;
-    }
-
-    public void setDefaultRoom(boolean defaultRoom) {
-        this.defaultRoom = defaultRoom;
-    }
 }

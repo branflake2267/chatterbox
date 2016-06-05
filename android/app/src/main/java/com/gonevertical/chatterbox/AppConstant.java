@@ -10,7 +10,14 @@ public class AppConstant {
 
     public static final String DB_ROOMS = "rooms";
 
+    public static final String DB_ROOM = "room";
+
     public static final String DB_GROUPS = "groups";
+
+    /**
+     * Groups having rooms
+     */
+    public static final String DB_GROUPS_ROOMS = "groups_rooms";
 
     public static final String DB_DEFAULTS = "defaults";
 

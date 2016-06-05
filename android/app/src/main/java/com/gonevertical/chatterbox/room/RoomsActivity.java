@@ -29,6 +29,7 @@ import com.gonevertical.chatterbox.MainActivity;
 import com.gonevertical.chatterbox.R;
 import com.gonevertical.chatterbox.chat.ChatsActivity;
 import com.gonevertical.chatterbox.group.GroupsActivity;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -38,6 +39,12 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRoomDialogListener, DeleteRoomDialog.DeleteDialogListener {
+
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient mClient;
 
     public static Intent createIntent(Context context, String groupKey) {
         Intent in = new Intent();
@@ -53,7 +60,7 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
     private ActionBarDrawerToggle mDrawerToggle;
     private ArrayAdapter<String> mDrawerAdapter;
 
-    private FirebaseRecyclerAdapter<String, RoomHolder> mRecyclerViewAdapter;
+    private FirebaseRecyclerAdapter<Boolean, RoomHolder> mRecyclerViewAdapter;
     private SwipeRefreshLayout swipeContainer;
 
     @Override
@@ -85,22 +92,21 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
     }
 
     private void doesDefaultRoomExist() {
-        DatabaseReference drRooms = FirebaseDatabase.getInstance().getReference(AppConstant.DB_ROOMS);
-        Query defaultRoomQuery = drRooms.orderByChild("defaultRoom").equalTo(true);
+        // root/users/userkey/defaults/groups/groupKey/room/roomKey
+        Query defaultRoomQuery = FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_DEFAULTS).child(AppConstant.DB_GROUPS).child(getGroupKey()).child(AppConstant.DB_ROOM);
         defaultRoomQuery.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    linkUserToRoom(dataSnapshot.getChildren().iterator().next().getKey());
-                } else {
+                if (!dataSnapshot.exists()) {
                     createDefaultRoom();
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, "::doesDefaultRoomsExist? " + databaseError.getMessage());
                 // TODO
-                Toast.makeText(RoomsActivity.this, "Oops Couldn't find default room", Toast.LENGTH_LONG).show();
+                Toast.makeText(RoomsActivity.this, "Oops Couldn't find default group", Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -110,24 +116,21 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
     }
 
     /**
-     * /users/userKey/groupKey/rooms/roomkey
+     * Link to user rooms with reference
+     *
+     * @param roomKey
      */
-    private void linkUserToRoom(final String roomKey) {
-        // link to user rooms with reference
-        Query drRoomsLink = FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_ROOMS).child(getGroupKey()).orderByValue().equalTo(roomKey);
-        drRoomsLink.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (!dataSnapshot.hasChildren()) {
-                    FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_ROOMS).child(getGroupKey()).push().setValue(roomKey);
-                }
-            }
+    private void linkUserToRoom(final String roomKey, boolean defaultRoom) {
+        // root/users/userkey/rooms/roomkey/true
+        FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_ROOMS).child(roomKey).setValue(true);
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                // TODO
-            }
-        });
+        // root/users/userkey/groups_rooms/groupKey/rooms/roomkey/true
+        FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_GROUPS_ROOMS).child(getGroupKey()).child(AppConstant.DB_ROOMS).child(roomKey).setValue(true);
+
+        if (defaultRoom) {
+            // root/users/userkey/defaults/room/roomKey
+            FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_DEFAULTS).child(AppConstant.DB_GROUPS).child(getGroupKey()).child(AppConstant.DB_ROOM).setValue(roomKey);
+        }
     }
 
     private void createRoomsView() {
@@ -153,7 +156,8 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
 
         Log.i(TAG, "createRoomsView getUserKey()=" + getUserKey() + " getGroupKey()=" + getGroupKey());
 
-        DatabaseReference drRooms = FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_ROOMS).child(getGroupKey());
+        // root/users/userkey/groups_rooms/groupKey/rooms/roomkey
+        DatabaseReference drRooms = FirebaseDatabase.getInstance().getReference(AppConstant.DB_USERS).child(getUserKey()).child(AppConstant.DB_GROUPS_ROOMS).child(getGroupKey()).child(AppConstant.DB_ROOMS);
         drRooms.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -171,24 +175,16 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
             }
         });
 
-        mRecyclerViewAdapter = new FirebaseRecyclerAdapter<String, RoomHolder>(String.class, R.layout.room, RoomHolder.class, drRooms) {
+        mRecyclerViewAdapter = new FirebaseRecyclerAdapter<Boolean, RoomHolder>(Boolean.class, R.layout.room, RoomHolder.class, drRooms) {
             @Override
-            public void populateViewHolder(final RoomHolder roomHolder, String roomKey, final int position) {
+            public void populateViewHolder(final RoomHolder roomHolder, Boolean b, final int position) {
+                final String roomKey = mRecyclerViewAdapter.getRef(position).getRef().getKey();
+
                 roomHolder.setRoom(getSupportFragmentManager(), roomKey);
                 roomHolder.setOnClickRoomHandler(new RoomHolder.RoomClickHandler() {
                     @Override
                     public void onRoomClick() {
-                        mRecyclerViewAdapter.getRef(position).getRef().addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(DataSnapshot dataSnapshot) {
-                                navigateToChat(dataSnapshot.getKey());
-                            }
-
-                            @Override
-                            public void onCancelled(DatabaseError databaseError) {
-                                // TODO
-                            }
-                        });
+                        navigateToChat(roomKey);
                     }
                 });
             }
@@ -332,18 +328,18 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
      *
      * @param name room name
      */
-    private void createRoom(String name, boolean defaultRoom) {
+    private void createRoom(String name, final boolean defaultRoom) {
         Room room = new Room(name);
         room.setUid(FirebaseAuth.getInstance().getCurrentUser().getUid());
-        room.setDefaultRoom(defaultRoom);
 
         // add concrete room, then link it to user
         DatabaseReference dr = FirebaseDatabase.getInstance().getReference(AppConstant.DB_ROOMS);
         dr.push().setValue(room, new DatabaseReference.CompletionListener() {
             @Override
             public void onComplete(DatabaseError databaseError, DatabaseReference databaseReference) {
+                String roomKey = databaseReference.getKey();
                 if (databaseError == null) {
-                    linkUserToRoom(databaseReference.getKey());
+                    linkUserToRoom(roomKey, defaultRoom);
                 } else {
                     // TODO
                     Log.e(TAG, "Error completing creating room.");
