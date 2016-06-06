@@ -339,8 +339,8 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
      */
     @Override
     public void onFinishEditDialog(final String groupName, int adapterIndex) {
-        DatabaseReference drGroupLink = mRecyclerViewAdapter.getRef(adapterIndex).getRef();
-        drGroupLink.addListenerForSingleValueEvent(new ValueEventListener() {
+        DatabaseReference drLink = mRecyclerViewAdapter.getRef(adapterIndex).getRef();
+        drLink.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String groupKey = dataSnapshot.getKey();

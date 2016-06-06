@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -13,12 +12,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.gonevertical.chatterbox.AppConstant;
 import com.gonevertical.chatterbox.BaseActivity;
 import com.gonevertical.chatterbox.R;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -33,42 +32,6 @@ public class ChatsActivity extends BaseActivity {
         in.putExtra(AppConstant.GROUP_KEY, groupKey);
         in.putExtra(AppConstant.ROOM_KEY, roomKey);
         return in;
-    }
-
-    public static class ChatsHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
-        private FragmentManager supportFragmentManager;
-        private View mView;
-        private Chat chat;
-
-        public ChatsHolder(View itemView) {
-            super(itemView);
-
-            itemView.setOnClickListener(this);
-            itemView.setOnLongClickListener(this);
-
-            mView = itemView;
-        }
-
-        public void setChat(FragmentManager supportFragmentManager, Chat chat) {
-            this.supportFragmentManager = supportFragmentManager;
-            this.chat = chat;
-
-            TextView field = (TextView) mView.findViewById(R.id.chatMessage);
-            field.setText(chat.getMessage());
-        }
-
-        @Override
-        public void onClick(View v) {
-        }
-
-        @Override
-        public boolean onLongClick(View v) {
-            return false;
-        }
-
-        public Chat getChat() {
-            return chat;
-        }
     }
 
     private static final String TAG = ChatsActivity.class.getSimpleName();
@@ -162,13 +125,15 @@ public class ChatsActivity extends BaseActivity {
 
     private void createChat() {
         String message = chatMessage.getText().toString();
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        String author = FirebaseAuth.getInstance().getCurrentUser().getDisplayName();
 
-        Chat chat = new Chat();
-        chat.setMessage(message);
+        Chat chat = new Chat(uid, author, message);
+
         mQueryRoomChats.push().setValue(chat);
 
         chatMessage.setText("");
-        
+
         int position = mRecyclerViewAdapter.getItemCount();
         recyclerView.scrollToPosition(position);
     }

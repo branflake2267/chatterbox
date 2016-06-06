@@ -1,9 +1,8 @@
 apply plugin: 'com.android.application'
-apply plugin: 'idea'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '24.0.0 rc4'
+    buildToolsVersion '23.0.3'
     defaultConfig {
         applicationId "com.gonevertical.chatterbox"
         minSdkVersion 16
@@ -25,25 +24,18 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.4.0'
-    compile 'com.google.firebase:firebase-core:9.0.0'
-    compile 'com.google.firebase:firebase-database:9.0.0'
-    compile 'com.google.firebase:firebase-storage:9.0.0'
-    compile 'com.google.firebase:firebase-crash:9.0.0'
-    compile 'com.google.firebase:firebase-auth:9.0.0'
-    compile 'com.google.firebase:firebase-messaging:9.0.0'
-    compile 'com.google.firebase:firebase-invites:9.0.0'
-    compile 'com.google.firebase:firebase-ads:9.0.0'
-    compile 'com.google.android.gms:play-services-appindexing:9.0.0'
+    compile 'com.google.firebase:firebase-core:9.0.2'
+    compile 'com.google.firebase:firebase-database:9.0.2'
+    compile 'com.google.firebase:firebase-storage:9.0.2'
+    compile 'com.google.firebase:firebase-crash:9.0.2'
+    compile 'com.google.firebase:firebase-auth:9.0.2'
+    compile 'com.google.firebase:firebase-messaging:9.0.2'
+    compile 'com.google.firebase:firebase-invites:9.0.2'
+    compile 'com.google.firebase:firebase-ads:9.0.2'
+    compile 'com.google.android.gms:play-services-appindexing:9.0.2'
     compile 'com.firebaseui:firebase-ui-database:0.4.0'
     compile 'com.firebaseui:firebase-ui-auth:0.4.0'
-    compile 'com.google.android.gms:play-services:9.0.0'
-}
-
-idea {
-    module {
-        downloadJavadoc = true
-        downloadSources = true
-    }
+    compile 'com.google.android.gms:play-services:9.0.2'
 }
 
 

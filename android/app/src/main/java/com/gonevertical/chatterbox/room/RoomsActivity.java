@@ -362,11 +362,12 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
      */
     @Override
     public void onFinishEditDialog(final String roomName, int adapterIndex) {
-        DatabaseReference drRoomLink = mRecyclerViewAdapter.getRef(adapterIndex).getRef();
-        drRoomLink.addListenerForSingleValueEvent(new ValueEventListener() {
+        DatabaseReference drLink = mRecyclerViewAdapter.getRef(adapterIndex).getRef();
+        drLink.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                String roomKey = dataSnapshot.getValue(String.class);
+                String roomKey = dataSnapshot.getKey();
+                // root/rooms/roomKey/name
                 FirebaseDatabase.getInstance().getReference(AppConstant.DB_ROOMS).child(roomKey).child("name").setValue(roomName);
             }
 
