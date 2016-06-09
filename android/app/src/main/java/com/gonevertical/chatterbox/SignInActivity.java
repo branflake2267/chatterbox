@@ -3,17 +3,14 @@ package com.gonevertical.chatterbox;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.Snackbar;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
 import com.gonevertical.chatterbox.group.GroupsActivity;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-
-import java.util.ArrayList;
 
 public class SignInActivity extends BaseActivity {
 
@@ -26,81 +23,56 @@ public class SignInActivity extends BaseActivity {
     private static final String TAG = SignInActivity.class.getSimpleName();
     private static final int RC_SIGN_IN = 100;
 
-    private View mRootView;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_in);
 
+        Log.i(TAG, "starting sign in");
+
         // If logged in, send them to the next activity
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            onAuthSuccess();
-            return;
+            signedIn();
+        } else {
+            startSignIn();
         }
+    }
 
-        // Views
-        mRootView = findViewById(R.id.sign_in);
-
-        startActivityForResult(
-                AuthUI.getInstance().createSignInIntentBuilder()
-                        .setTheme(AuthUI.getDefaultTheme())
-                        .setProviders(getSelectedProviders())
-                        //.setTosUrl(getSelectedTosUrl())
+    private void startSignIn() {
+        FirebaseApp firebaseApp = FirebaseApp.getInstance();
+        startActivityForResult(AuthUI.getInstance(firebaseApp)
+                        .createSignInIntentBuilder()
+                        .setProviders(
+                                AuthUI.GOOGLE_PROVIDER,
+                                AuthUI.FACEBOOK_PROVIDER)
                         .build(),
                 RC_SIGN_IN);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.i(TAG, "onActivityResult .. resultcode=" + resultCode);
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == RC_SIGN_IN) {
-            handleSignInResponse(resultCode, data);
-            return;
+            if (resultCode == RESULT_OK) {
+                // user is signed in!
+                signedIn();
+            } else {
+                // user is not signed in. Maybe just wait for the user to press
+                // "sign in" again, or show a message
+            }
         }
-
-        showSnackbar(R.string.unknown_response);
     }
 
-    private void handleSignInResponse(int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            onAuthSuccess();
-            return;
-        }
-
-        if (resultCode == RESULT_CANCELED) {
-            showSnackbar(R.string.sign_in_cancelled);
-            return;
-        }
-
-        showSnackbar(R.string.unknown_sign_in_response);
-    }
-
-    private String[] getSelectedProviders() {
-        ArrayList<String> selectedProviders = new ArrayList<>();
-
-        //selectedProviders.add(AuthUI.EMAIL_PROVIDER);
-        selectedProviders.add(AuthUI.FACEBOOK_PROVIDER);
-        selectedProviders.add(AuthUI.GOOGLE_PROVIDER);
-
-        return selectedProviders.toArray(new String[selectedProviders.size()]);
-    }
-
-    private void onAuthSuccess() {
+    private void signedIn() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         Toast.makeText(SignInActivity.this, "Sign In: Success " + currentUser.getDisplayName(), Toast.LENGTH_LONG).show();
 
-        Log.i(TAG, "onAuthSuccess " + currentUser.getUid());
+        Log.i(TAG, "signedIn " + currentUser.getUid());
 
         startActivity(GroupsActivity.createIntent(this));
         finish();
-    }
-
-    private void showSnackbar(int errorMessageRes) {
-        Snackbar.make(mRootView, errorMessageRes, Snackbar.LENGTH_LONG).show();
-
-        Log.i(TAG, "showSnackbar error " + errorMessageRes);
     }
 
 }

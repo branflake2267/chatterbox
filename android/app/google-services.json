@@ -1,52 +1,21 @@
 {
   "project_info": {
-    "project_number": "260166091553",
-    "firebase_url": "https://donnelson.firebaseio.com",
-    "project_id": "project-2814369833856557912",
-    "storage_bucket": "project-2814369833856557912.appspot.com"
+    "project_number": "20832144509",
+    "firebase_url": "https://donnelson-53958.firebaseio.com",
+    "project_id": "donnelson-53958",
+    "storage_bucket": "donnelson-53958.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:260166091553:android:d90646cc6ab96f23",
-        "android_client_info": {
-          "package_name": "com.gonevertical.firesandbox2"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "260166091553-l24j12n49uiv9e7lkv60upp4gob4vvcs.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCKr6tlJssB11gg8LwLhzihoLgnlxZ3lvI"
-        }
-      ],
-      "services": {
-        "analytics_service": {
-          "status": 1
-        },
-        "appinvite_service": {
-          "status": 1,
-          "other_platform_oauth_client": []
-        },
-        "ads_service": {
-          "status": 2
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:260166091553:android:6c81ab877f86a367",
+        "mobilesdk_app_id": "1:20832144509:android:6c81ab877f86a367",
         "android_client_info": {
           "package_name": "com.gonevertical.chatterbox"
         }
       },
       "oauth_client": [
         {
-          "client_id": "260166091553-280ehko6iogdn6bt1esmhnrab7d7a9ho.apps.googleusercontent.com",
+          "client_id": "20832144509-k2rebd2t3a2m3qc2nku64edpee8e80b9.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.gonevertical.chatterbox",
@@ -54,13 +23,13 @@
           }
         },
         {
-          "client_id": "260166091553-l24j12n49uiv9e7lkv60upp4gob4vvcs.apps.googleusercontent.com",
+          "client_id": "20832144509-45h8tnsetm3ds06ul196ie0qjo6uua83.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCKr6tlJssB11gg8LwLhzihoLgnlxZ3lvI"
+          "current_key": "AIzaSyDaLHNzy6FrGrvVNS08lygnya7uR-X2nT0"
         }
       ],
       "services": {
@@ -71,7 +40,7 @@
           "status": 2,
           "other_platform_oauth_client": [
             {
-              "client_id": "260166091553-l24j12n49uiv9e7lkv60upp4gob4vvcs.apps.googleusercontent.com",
+              "client_id": "20832144509-45h8tnsetm3ds06ul196ie0qjo6uua83.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
