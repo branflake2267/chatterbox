@@ -3,6 +3,7 @@ package com.gonevertical.chatterbox.group;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
@@ -28,6 +29,7 @@ import com.gonevertical.chatterbox.BaseActivity;
 import com.gonevertical.chatterbox.MainActivity;
 import com.gonevertical.chatterbox.R;
 import com.gonevertical.chatterbox.room.RoomsActivity;
+import com.google.android.gms.appinvite.AppInviteInvitation;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -37,6 +39,8 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 public class GroupsActivity extends BaseActivity implements EditGroupDialog.EditGroupDialogListener, DeleteGroupDialog.DeleteDialogListener {
+
+    private static final int REQUEST_INVITE = 1001;
 
     public static Intent createIntent(Context context) {
         Intent in = new Intent();
@@ -83,16 +87,16 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
         defaultGroupQuery.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(!dataSnapshot.exists()) {
+                if (!dataSnapshot.exists()) {
                     createDefaultGroup();
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                Log.e(TAG, "::doesDefaultGroupExist? " + databaseError.getMessage());
-                // TODO
-                Toast.makeText(GroupsActivity.this, "Oops Couldn't find default group", Toast.LENGTH_LONG).show();
+                Log.e(TAG, "doesDefaultGroupExist() onCancelled: database error=" + databaseError.getMessage());
+
+                // TODO fallback
             }
         });
     }
@@ -153,6 +157,7 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
 
             @Override
             public void onCancelled(DatabaseError firebaseError) {
+                Log.e(TAG, "createGroupsView(): onCancelled: database error=" + firebaseError.getMessage());
                 swipeContainer.setRefreshing(false);
             }
         });
@@ -165,8 +170,13 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
                 groupHolder.setGroup(getSupportFragmentManager(), groupKey);
                 groupHolder.setOnClickGroupHandler(new GroupHolder.GroupClickHandler() {
                     @Override
-                    public void onGroupClick() {
+                    public void onGroupClick(Group group) {
                         navigateToRoom(groupKey);
+                    }
+
+                    @Override
+                    public void onGroupClickInvite(Group group) {
+                        groupInvite(groupKey, group);
                     }
                 });
             }
@@ -196,8 +206,24 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
         itemTouchHelper.attachToRecyclerView(recyclerView);
     }
 
+    private void groupInvite(String groupKey, Group group) {
+        String url = getString(R.string.invitation_deep_link_group) + groupKey;
+        String title = getString(R.string.invite_group) + " " + group.getName();
+
+        String message = getString(R.string.invite_group_message);
+        message = String.format(message, group.getName());
+
+        Intent intent = new AppInviteInvitation.IntentBuilder(title)
+                .setMessage(message)
+                .setDeepLink(Uri.parse(url))
+                .setCallToActionText(getString(R.string.invite_group_button_text))
+                .build();
+        intent.putExtra(AppConstant.GROUP_KEY, groupKey);
+        startActivityForResult(intent, REQUEST_INVITE);
+    }
+
     private void navigateToRoom(String groupKey) {
-        Log.i(TAG, "navigateToRoom groupKey=" + groupKey);
+        Log.i(TAG, "navigateToRoom(groupKey): groupKey=" + groupKey);
         startActivity(RoomsActivity.createIntent(this, groupKey));
     }
 
@@ -306,6 +332,8 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
      * @param defaultGroup for the first group only (maybe change this to the first item)
      */
     private void createGroup(String name, final boolean defaultGroup) {
+        Log.i(TAG, "createGroup(name, defaultGroup) name=" + name + " defaultGroup=" + defaultGroup);
+
         Group group = new Group(name);
         group.setUid(FirebaseAuth.getInstance().getCurrentUser().getUid());
 
@@ -318,8 +346,9 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
                 if (databaseError == null) {
                     linkUserToGroup(groupKey, defaultGroup);
                 } else {
-                    // TODO
-                    Log.e(TAG, "Error completing creating group.");
+                    Log.e(TAG, "createGroup(): Error completing creating group. database error=" + databaseError.getMessage());
+
+                    // TODO fallback?
                 }
             }
         });
@@ -330,7 +359,7 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
      */
     @Override
     public void onFinishAddDialog(String groupName) {
-        //Log.i(TAG, "groupName=" + groupName + " " + addGroup);
+        Log.i(TAG, "onFinishAddDialog groupName=" + groupName);
         createGroup(groupName, false);
     }
 
@@ -350,7 +379,9 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                // TODO
+                Log.e(TAG, "onFinishedEditDialog: onCancelled: database error=" + databaseError.getMessage());
+
+                // TODO fallback?
             }
         });
     }
@@ -359,7 +390,6 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
     public void onDeleteOkDialog(GroupHolder groupHolder) {
         Log.i(TAG, "delete Ok groupName=" + groupHolder.getGroup().getName());
         Toast.makeText(this, "Deleting group " + groupHolder.getGroup().getName(), Toast.LENGTH_LONG).show();
-
 
         // TODO delete group
         // TODO don't delete default group
@@ -377,6 +407,31 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
     protected void onDestroy() {
         super.onDestroy();
         mRecyclerViewAdapter.cleanup();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.d(TAG, "onActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
+
+        if (requestCode == REQUEST_INVITE) {
+            if (resultCode == RESULT_OK) {
+                String groupKey = data.getStringExtra(AppConstant.GROUP_KEY);
+
+                // Get the invitation IDs of all sent messages
+                String[] inviteIds = AppInviteInvitation.getInvitationIds(resultCode, data);
+                for (String inviteId : inviteIds) {
+                    Log.d(TAG, "onActivityResult: sent invitation " + inviteId);
+
+                    // root/invites/inviteid/group/groupkey
+                    FirebaseDatabase.getInstance().getReference(AppConstant.DB_INVITES).child(inviteId).child(AppConstant.DB_GROUP).setValue(groupKey);
+
+                    Toast.makeText(this, "Sent the invitation", Toast.LENGTH_LONG).show();
+                }
+            } else {
+                Toast.makeText(this, "The invitation was cancelled.", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
 }

@@ -28,4 +28,6 @@ public class AppConstant {
     public static final String DB_MESSSAGES = "messages";
 
     public static final String DB_USERS = "users";
+
+    public static final String DB_INVITES = "invites";
 }

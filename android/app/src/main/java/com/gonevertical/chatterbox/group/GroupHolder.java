@@ -3,6 +3,7 @@ package com.gonevertical.chatterbox.group;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.gonevertical.chatterbox.AppConstant;
@@ -16,7 +17,9 @@ import com.google.firebase.database.ValueEventListener;
 public class GroupHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
 
     public interface GroupClickHandler {
-        void onGroupClick();
+        void onGroupClick(Group group);
+
+        void onGroupClickInvite(Group group);
     }
 
     private final static String TAG = GroupHolder.class.getSimpleName();
@@ -26,6 +29,7 @@ public class GroupHolder extends RecyclerView.ViewHolder implements View.OnClick
     private View mView;
     private Group group;
     private GroupClickHandler groupClickHandler;
+    private final ImageButton shareButton;
 
     public GroupHolder(View itemView) {
         super(itemView);
@@ -34,6 +38,14 @@ public class GroupHolder extends RecyclerView.ViewHolder implements View.OnClick
         itemView.setOnLongClickListener(this);
 
         mView = itemView;
+
+        shareButton = (ImageButton) itemView.findViewById(R.id.btnShareGroup);
+        shareButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                fireOnClickGroupShareEvent();
+            }
+        });
     }
 
     public void setGroup(FragmentManager supportFragmentManager, String groupKey) {
@@ -90,7 +102,13 @@ public class GroupHolder extends RecyclerView.ViewHolder implements View.OnClick
 
     protected void fireOnClickGroupEvent() {
         if (groupClickHandler != null) {
-            groupClickHandler.onGroupClick();
+            groupClickHandler.onGroupClick(group);
+        }
+    }
+
+    protected void fireOnClickGroupShareEvent() {
+        if (groupClickHandler != null) {
+            groupClickHandler.onGroupClickInvite(group);
         }
     }
 

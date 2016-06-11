@@ -16,4 +16,15 @@
         android:text="..."
         android:textAppearance="?android:attr/textAppearanceSmall"/>
 
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/btnShareGroup"
+        android:layout_centerVertical="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:src="@drawable/ic_share_black_24dp"
+        android:background="#fff"
+        android:clickable="false"/>
+
 </RelativeLayout>
