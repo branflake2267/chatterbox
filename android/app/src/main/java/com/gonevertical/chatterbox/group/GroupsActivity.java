@@ -40,8 +40,6 @@ import com.google.firebase.database.ValueEventListener;
 
 public class GroupsActivity extends BaseActivity implements EditGroupDialog.EditGroupDialogListener, DeleteGroupDialog.DeleteDialogListener {
 
-    private static final int REQUEST_INVITE = 1001;
-
     public static Intent createIntent(Context context) {
         Intent in = new Intent();
         in.setClass(context, GroupsActivity.class);
@@ -49,6 +47,7 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
     }
 
     private static final String TAG = GroupsActivity.class.getSimpleName();
+    private static final int REQUEST_INVITE = 1001;
 
     private ListView mDrawerList;
     private DrawerLayout mDrawerLayout;
@@ -57,6 +56,9 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
 
     private FirebaseRecyclerAdapter<Boolean, GroupHolder> mRecyclerViewAdapter;
     private SwipeRefreshLayout swipeContainer;
+
+    private String inviteGroupKey;
+    private Group inviteGroup;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -207,18 +209,20 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
     }
 
     private void groupInvite(String groupKey, Group group) {
+        inviteGroupKey = groupKey;
+        inviteGroup = group;
+
         String url = getString(R.string.invitation_deep_link_group) + groupKey;
         String title = getString(R.string.invite_group) + " " + group.getName();
 
-        String message = getString(R.string.invite_group_message);
-        message = String.format(message, group.getName());
+        String message = getString(R.string.invite_group_message, group.getName());
 
         Intent intent = new AppInviteInvitation.IntentBuilder(title)
                 .setMessage(message)
                 .setDeepLink(Uri.parse(url))
                 .setCallToActionText(getString(R.string.invite_group_button_text))
                 .build();
-        intent.putExtra(AppConstant.GROUP_KEY, groupKey);
+
         startActivityForResult(intent, REQUEST_INVITE);
     }
 
@@ -416,22 +420,22 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
 
         if (requestCode == REQUEST_INVITE) {
             if (resultCode == RESULT_OK) {
-                String groupKey = data.getStringExtra(AppConstant.GROUP_KEY);
 
                 // Get the invitation IDs of all sent messages
                 String[] inviteIds = AppInviteInvitation.getInvitationIds(resultCode, data);
                 for (String inviteId : inviteIds) {
-                    Log.d(TAG, "onActivityResult: sent invitation " + inviteId);
+                    Log.d(TAG, "onActivityResult: sent invitation inviteId=" + inviteId + " groupKey=" + inviteGroupKey);
 
                     // root/invites/inviteid/group/groupkey
-                    FirebaseDatabase.getInstance().getReference(AppConstant.DB_INVITES).child(inviteId).child(AppConstant.DB_GROUP).setValue(groupKey);
-
-                    Toast.makeText(this, "Sent the invitation", Toast.LENGTH_LONG).show();
+                    FirebaseDatabase.getInstance().getReference(AppConstant.DB_INVITES).child(inviteId)
+                            .child(AppConstant.DB_GROUP).child(inviteGroupKey).child("name").setValue(inviteGroup.getName());
                 }
             } else {
                 Toast.makeText(this, "The invitation was cancelled.", Toast.LENGTH_LONG).show();
             }
         }
+
+        inviteGroupKey = null;
     }
 
 }

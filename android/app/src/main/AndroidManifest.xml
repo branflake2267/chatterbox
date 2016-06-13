@@ -4,7 +4,6 @@
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
 
     <application
@@ -13,6 +12,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -20,13 +20,16 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
         <activity android:name=".SignInActivity">
         </activity>
+
         <activity
             android:name=".room.RoomsActivity"
             android:label="@string/title_activity_rooms"
             android:theme="@style/AppTheme.NoActionBar">
         </activity>
+
         <activity
             android:name=".chat.ChatsActivity"
             android:label="Room Chat"
@@ -35,10 +38,29 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".room.RoomsActivity"/>
         </activity>
+
         <activity
             android:name=".group.GroupsActivity"
             android:label="@string/title_activity_groups"
             android:theme="@style/AppTheme.NoActionBar">
+        </activity>
+
+        <activity
+            android:name=".invite.InviteResponseGroupActivity"
+            android:label="@string/title_activity_invite_response_group"
+            android:theme="@style/AppTheme.NoActionBar">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:host="gonevertical.com"
+                    android:scheme="http"/>
+                <data
+                    android:host="gonevertical.com"
+                    android:scheme="https"/>
+            </intent-filter>
         </activity>
 
         <!--
@@ -48,11 +70,6 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version"/>
-
-        <!-- <meta-data -->
-        <!-- android:name="com.google.android.gms.version" -->
-        <!-- android:value="@integer/google_play_services_version" /> -->
-
 
     </application>
 
