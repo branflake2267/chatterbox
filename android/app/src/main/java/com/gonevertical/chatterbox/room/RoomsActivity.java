@@ -84,6 +84,37 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
         });
 
         doesDefaultRoomExist();
+
+        displayTitle();
+    }
+
+    private void displayTitle() {
+        String groupKey = getGroupKey();
+        DatabaseReference drGroup = FirebaseDatabase.getInstance().getReference(AppConstant.DB_GROUPS).child(groupKey).child("name");
+        drGroup.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) {
+                    return;
+                }
+                String name = (String) dataSnapshot.getValue();
+                displayTitle(name);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, "displayTitle() database error=" + databaseError.getMessage());
+            }
+        });
+    }
+
+    public void displayTitle(String name) {
+        if (name == null) {
+            return;
+        }
+
+        String title = name + " " + getString(R.string.title_activity_rooms);
+        getSupportActionBar().setTitle(title);
     }
 
     private String getGroupKey() {

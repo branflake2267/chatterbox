@@ -46,6 +46,8 @@ public class GroupHolder extends RecyclerView.ViewHolder implements View.OnClick
                 fireOnClickGroupShareEvent();
             }
         });
+
+        shareButton.setVisibility(View.INVISIBLE);
     }
 
     public void setGroup(FragmentManager supportFragmentManager, String groupKey) {

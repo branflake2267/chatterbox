@@ -55,8 +55,8 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data
-                    android:host="gonevertical.com"
-                    android:scheme="http"/>
+                    android:host="kkr4t.app.goo.gl"
+                    android:scheme="https"/>
                 <data
                     android:host="gonevertical.com"
                     android:scheme="https"/>

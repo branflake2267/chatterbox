@@ -33,6 +33,9 @@ public class MainActivity extends BaseActivity implements GoogleApiClient.OnConn
 
     /**
      * Install and then possibly go to deep link
+     *
+     * http://fdl-links.appspot.com/ - create a link
+     * https://developer.android.com/training/app-indexing/deep-linking.html
      */
     private void handleDeepLink() {
         // Build GoogleApiClient with AppInvite API for receiving deep links
