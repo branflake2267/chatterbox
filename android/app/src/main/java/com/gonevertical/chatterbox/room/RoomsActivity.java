@@ -3,6 +3,7 @@ package com.gonevertical.chatterbox.room;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
@@ -29,7 +30,7 @@ import com.gonevertical.chatterbox.MainActivity;
 import com.gonevertical.chatterbox.R;
 import com.gonevertical.chatterbox.chat.ChatsActivity;
 import com.gonevertical.chatterbox.group.GroupsActivity;
-import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.appinvite.AppInviteInvitation;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -40,12 +41,6 @@ import com.google.firebase.database.ValueEventListener;
 
 public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRoomDialogListener, DeleteRoomDialog.DeleteDialogListener {
 
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
-    private GoogleApiClient mClient;
-
     public static Intent createIntent(Context context, String groupKey) {
         Intent in = new Intent();
         in.setClass(context, RoomsActivity.class);
@@ -54,6 +49,7 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
     }
 
     private static final String TAG = RoomsActivity.class.getSimpleName();
+    private static final int REQUEST_INVITE = 1001;
 
     private ListView mDrawerList;
     private DrawerLayout mDrawerLayout;
@@ -62,6 +58,8 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
 
     private FirebaseRecyclerAdapter<Boolean, RoomHolder> mRecyclerViewAdapter;
     private SwipeRefreshLayout swipeContainer;
+
+    public String groupName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +96,7 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
                     return;
                 }
                 String name = (String) dataSnapshot.getValue();
+                groupName = name;
                 displayTitle(name);
             }
 
@@ -112,7 +111,6 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
         if (name == null) {
             return;
         }
-
         String title = name + " " + getString(R.string.title_activity_rooms);
         getSupportActionBar().setTitle(title);
     }
@@ -331,6 +329,9 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
             case R.id.action_groups:
                 onActionGroups();
                 break;
+            case R.id.action_share_group:
+                onActionShareGroup();
+                break;
         }
 
         // Activate the navigation drawer toggle
@@ -339,6 +340,21 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void onActionShareGroup() {
+        String url = getString(R.string.invitation_deep_link_group) + getGroupKey();
+        String title = getString(R.string.invite_group) + " " + groupName;
+
+        String message = getString(R.string.invite_group_message, groupName);
+
+        Intent intent = new AppInviteInvitation.IntentBuilder(title)
+                .setMessage(message)
+                .setDeepLink(Uri.parse(url))
+                .setCallToActionText(getString(R.string.invite_group_button_text))
+                .build();
+
+        startActivityForResult(intent, REQUEST_INVITE);
     }
 
     private void onActionSettings() {
@@ -429,6 +445,29 @@ public class RoomsActivity extends BaseActivity implements EditRoomDialog.EditRo
     protected void onDestroy() {
         super.onDestroy();
         mRecyclerViewAdapter.cleanup();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.d(TAG, "onActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
+
+        if (requestCode == REQUEST_INVITE) {
+            if (resultCode == RESULT_OK) {
+
+                // Get the invitation IDs of all sent messages
+                String[] inviteIds = AppInviteInvitation.getInvitationIds(resultCode, data);
+                for (String inviteId : inviteIds) {
+                    Log.d(TAG, "onActivityResult: sent invitation inviteId=" + inviteId + " groupKey=" + getGroupKey());
+
+                    // root/invites/inviteid/group/groupkey
+                    FirebaseDatabase.getInstance().getReference(AppConstant.DB_INVITES).child(inviteId)
+                            .child(AppConstant.DB_GROUP).child(getGroupKey()).child("name").setValue(groupName);
+                }
+            } else {
+                Toast.makeText(this, "The invitation was cancelled.", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
 }

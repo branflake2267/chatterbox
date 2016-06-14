@@ -11,6 +11,10 @@
           android:title="@string/action_groups"
           android:orderInCategory="100"
           app:showAsAction="never"/>
+    <item android:id="@+id/action_share_group"
+          android:title="@string/action_share_group"
+          android:orderInCategory="100"
+          app:showAsAction="never"/>
     <item android:id="@+id/action_signout"
           android:title="@string/action_signout"
           android:orderInCategory="100"

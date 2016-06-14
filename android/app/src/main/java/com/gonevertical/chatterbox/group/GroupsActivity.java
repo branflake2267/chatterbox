@@ -3,7 +3,6 @@ package com.gonevertical.chatterbox.group;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
@@ -29,7 +28,6 @@ import com.gonevertical.chatterbox.BaseActivity;
 import com.gonevertical.chatterbox.MainActivity;
 import com.gonevertical.chatterbox.R;
 import com.gonevertical.chatterbox.room.RoomsActivity;
-import com.google.android.gms.appinvite.AppInviteInvitation;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -178,7 +176,7 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
 
                     @Override
                     public void onGroupClickInvite(Group group) {
-                        groupInvite(groupKey, group);
+
                     }
                 });
             }
@@ -206,24 +204,6 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
         };
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
         itemTouchHelper.attachToRecyclerView(recyclerView);
-    }
-
-    private void groupInvite(String groupKey, Group group) {
-        inviteGroupKey = groupKey;
-        inviteGroup = group;
-
-        String url = getString(R.string.invitation_deep_link_group) + groupKey;
-        String title = getString(R.string.invite_group) + " " + group.getName();
-
-        String message = getString(R.string.invite_group_message, group.getName());
-
-        Intent intent = new AppInviteInvitation.IntentBuilder(title)
-                .setMessage(message)
-                .setDeepLink(Uri.parse(url))
-                .setCallToActionText(getString(R.string.invite_group_button_text))
-                .build();
-
-        startActivityForResult(intent, REQUEST_INVITE);
     }
 
     private void navigateToRoom(String groupKey) {
@@ -411,31 +391,6 @@ public class GroupsActivity extends BaseActivity implements EditGroupDialog.Edit
     protected void onDestroy() {
         super.onDestroy();
         mRecyclerViewAdapter.cleanup();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        Log.d(TAG, "onActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
-
-        if (requestCode == REQUEST_INVITE) {
-            if (resultCode == RESULT_OK) {
-
-                // Get the invitation IDs of all sent messages
-                String[] inviteIds = AppInviteInvitation.getInvitationIds(resultCode, data);
-                for (String inviteId : inviteIds) {
-                    Log.d(TAG, "onActivityResult: sent invitation inviteId=" + inviteId + " groupKey=" + inviteGroupKey);
-
-                    // root/invites/inviteid/group/groupkey
-                    FirebaseDatabase.getInstance().getReference(AppConstant.DB_INVITES).child(inviteId)
-                            .child(AppConstant.DB_GROUP).child(inviteGroupKey).child("name").setValue(inviteGroup.getName());
-                }
-            } else {
-                Toast.makeText(this, "The invitation was cancelled.", Toast.LENGTH_LONG).show();
-            }
-        }
-
-        inviteGroupKey = null;
     }
 
 }

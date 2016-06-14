@@ -1,7 +1,6 @@
 package com.gonevertical.chatterbox.invite;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -82,15 +81,6 @@ public class InviteResponseGroupActivity extends BaseActivity implements GoogleA
                             public void onResult(@NonNull AppInviteInvitationResult result) {
                                 Intent intent = result.getInvitationIntent();
 
-                                // TODO trying to figure out a way to test this.
-                                // adb shell am start -W -a android.intent.action.VIEW -d "https://gonevertical.com/chatterbox/invite/group/-KJnkQfRjZfAH9-U_U4a?invitation_id=20832144509-9642991a-de62-4d40-ba93-b991208c2d31" com.gonevertical.chatterbox
-                                Uri data = getIntent().getData();
-                                if (data != null && data.getQueryParameter("invitation_id") != null) {
-                                    String link = data.getQueryParameter("invitation_id");
-
-                                    Log.i(TAG, "link=" + link);
-                                }
-
                                 if (result.getStatus().isSuccess()) {
                                     // Extract information from the intent
                                     //Intent intent = result.getInvitationIntent();
@@ -149,7 +139,7 @@ public class InviteResponseGroupActivity extends BaseActivity implements GoogleA
     }
 
     private void onInviteSuccessFoundInvite(String groupKey, String groupName) {
-        String text = "Would you like to join the group '" + groupName + "'?";
+        String text = "Found the invite for the group '" + groupName + "'?";
         inviteGroupText.setText(text);
 
         // TODO enable login
