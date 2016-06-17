@@ -27,7 +27,7 @@
     <string name="invite_group_message">Would you like to join my group %s?</string>
     <string name="invite_group_button_text">Yes, I want to join.</string>
     <string name="title_activity_invite_response_group">Invite Response</string>
-    <string name="action_share_group">Share Group</string>
+    <string name="action_share_group">Share</string>
     <string name="invitation_title_group">Invite Group</string>
     <string name="invitation_message_group">Would you like to join my group?</string>
 </resources>

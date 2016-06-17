@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 
 import com.google.android.gms.appinvite.AppInvite;
 import com.google.android.gms.appinvite.AppInviteInvitationResult;
@@ -28,12 +30,20 @@ public class MainActivity extends BaseActivity implements GoogleApiClient.OnConn
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Button signInButton = (Button) findViewById(R.id.mainSignInButton);
+        signInButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(SignInActivity.createIntent(MainActivity.this));
+            }
+        });
+
         handleDeepLink();
     }
 
     /**
      * Install and then possibly go to deep link
-     *
+     * <p>
      * http://fdl-links.appspot.com/ - create a link
      * https://developer.android.com/training/app-indexing/deep-linking.html
      */
@@ -62,21 +72,14 @@ public class MainActivity extends BaseActivity implements GoogleApiClient.OnConn
 
                                     Log.i(TAG, "handleDeepLink(): deepLink=" + deepLink + " invitationId=" + invitationId);
                                 } else {
-                                    startSignIn();
+
                                 }
                             }
                         });
     }
 
-    private void startSignIn() {
-        startActivity(new Intent(this, SignInActivity.class));
-        finish();
-    }
-
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         Log.e(TAG, "onConnectionFailed() connectionResult=" + connectionResult);
-
-        startSignIn();
     }
 }

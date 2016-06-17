@@ -28,8 +28,6 @@ public class SignInActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_in);
 
-        Log.i(TAG, "starting sign in");
-
         // If logged in, send them to the next activity
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             signedIn();
@@ -39,6 +37,8 @@ public class SignInActivity extends BaseActivity {
     }
 
     private void startSignIn() {
+        Log.i(TAG, "Starting sign in");
+
         FirebaseApp firebaseApp = FirebaseApp.getInstance();
         startActivityForResult(AuthUI.getInstance(firebaseApp)
                         .createSignInIntentBuilder()
@@ -51,8 +51,9 @@ public class SignInActivity extends BaseActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.i(TAG, "onActivityResult .. resultcode=" + resultCode);
         super.onActivityResult(requestCode, resultCode, data);
+
+        Log.i(TAG, "onActivityResult: resultcode=" + resultCode);
 
         if (requestCode == RC_SIGN_IN) {
             if (resultCode == RESULT_OK) {
@@ -67,7 +68,7 @@ public class SignInActivity extends BaseActivity {
 
     private void signedIn() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        Toast.makeText(SignInActivity.this, "Sign In: Success " + currentUser.getDisplayName(), Toast.LENGTH_LONG).show();
+        Toast.makeText(SignInActivity.this, "" + currentUser.getDisplayName() + " Signed In", Toast.LENGTH_LONG).show();
 
         Log.i(TAG, "signedIn " + currentUser.getUid());
 
